@@ -8,8 +8,7 @@ namespace Octopus.Shellfish.Windows
     {
         [DllImport("kernel32.dll", SetLastError = true)]
 #pragma warning disable PC003 // Native API not available in UWP
-        static extern bool GetCPInfoEx([MarshalAs(UnmanagedType.U4)]
-            int codePage,
+        static extern bool GetCPInfoEx([MarshalAs(UnmanagedType.U4)] int codePage,
             [MarshalAs(UnmanagedType.U4)]
             int dwFlags,
             out CPINFOEX lpCPInfoEx);
