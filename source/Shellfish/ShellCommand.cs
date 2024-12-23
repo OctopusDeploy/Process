@@ -23,6 +23,8 @@ public class ShellCommand
     IReadOnlyDictionary<string, string>? environmentVariables;
     NetworkCredential? windowsCredential;
     Encoding? outputEncoding;
+    ShellCommandOptions commandOptions;
+    Action<int>? onCaptureProcessId;
 
     List<IOutputTarget>? stdOutTargets;
     List<IOutputTarget>? stdErrTargets;
@@ -32,6 +34,13 @@ public class ShellCommand
     {
         if (string.IsNullOrWhiteSpace(executable)) throw new ArgumentException("Executable must be a valid non-whitespace string.", nameof(executable));
         this.executable = executable;
+    }
+
+    // internal only, so tests can assert if a process has exited or not.
+    internal ShellCommand CaptureProcessId(Action<int> onProcessId)
+    {
+        onCaptureProcessId = onProcessId;
+        return this;
     }
 
     /// <summary>
@@ -146,6 +155,12 @@ public class ShellCommand
         return this;
     }
 
+    public ShellCommand WithOptions(ShellCommandOptions options)
+    {
+        commandOptions = options;
+        return this;
+    }
+
     /// <summary>
     /// Launches the process and synchronously waits for it to exit.
     /// </summary>
@@ -156,6 +171,8 @@ public class ShellCommand
 
         var exitedEvent = AttachProcessExitedManualResetEvent(process, cancellationToken);
         process.Start();
+
+        onCaptureProcessId?.Invoke(process.Id);
 
         IDisposable? closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
 
@@ -186,8 +203,7 @@ public class ShellCommand
             // We keep that default as it is the safest option for compatibility
             TryKillProcessAndChildrenRecursively(process);
 
-            // Do not rethrow; The legacy ShellExecutor didn't throw an OperationCanceledException if CancellationToken was signaled.
-            // This is a bit nonstandard for .NET, but we keep it as the default for compatibility.
+            if (commandOptions != ShellCommandOptions.DoNotThrowOnCancellation) throw;
         }
         finally
         {
@@ -207,6 +223,8 @@ public class ShellCommand
 
         var exitedTask = AttachProcessExitedTask(process, cancellationToken);
         process.Start();
+        
+        onCaptureProcessId?.Invoke(process.Id);
 
         IDisposable? closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
 
@@ -232,8 +250,7 @@ public class ShellCommand
             // We keep that default as it is the safest option for compatibility
             TryKillProcessAndChildrenRecursively(process);
 
-            // Do not rethrow; The legacy ShellExecutor didn't throw an OperationCanceledException if CancellationToken was signaled.
-            // This is a bit nonstandard for .NET, but we keep it as the default for compatibility.
+            if (commandOptions != ShellCommandOptions.DoNotThrowOnCancellation) throw;
         }
         finally
         {

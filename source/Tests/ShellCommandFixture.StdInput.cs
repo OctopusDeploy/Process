@@ -225,6 +225,60 @@ public class ShellCommandFixtureStdInput
             })
             .WithStdErrTarget(stdErr);
 
+        var cancellationToken = cts.Token;
+        if (behaviour == SyncBehaviour.Async)
+        {
+            await executor.Invoking(e => e.ExecuteAsync(cancellationToken)).Should().ThrowAsync<OperationCanceledException>();
+        }
+        else
+        {
+            executor.Invoking(e => e.Execute(cancellationToken)).Should().Throw<OperationCanceledException>();
+        }
+
+        // we can't observe any exit code because Execute() threw an exception
+        stdErr.ToString().Should().BeEmpty("no messages should be written to stderr");
+        stdOut.ToString().Should().BeOneOf([
+            "Enter Name:" + Environment.NewLine,
+            "Enter Name:" + Environment.NewLine + "Hello ''" + Environment.NewLine,
+        ], because: "When we cancel the process we close StdIn and it shuts down. The process observes the EOF as empty string and prints 'Hello ' but there is a benign race condition which means we may not observe this output. Test needs to handle both cases");
+    }
+
+    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    public async Task ShouldBeCancellable_DoNotThrowOnCancellation(SyncBehaviour behaviour)
+    {
+        using var tempScript = TempScript.Create(
+            cmd: """
+                 @echo off
+                 echo Enter Name:
+                 set /p name=
+                 echo Hello '%name%'
+                 """,
+            sh: """
+                echo "Enter Name:"
+                read name
+                echo "Hello '$name'"
+                """);
+
+        var stdOut = new StringBuilder();
+        var stdErr = new StringBuilder();
+
+        // it's going to ask us for the name first, but we don't give it anything; the script should hang
+        var stdIn = new TestInputSource();
+
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+
+        var executor = new ShellCommand(tempScript.GetHostExecutable())
+            .WithOptions(ShellCommandOptions.DoNotThrowOnCancellation)
+            .WithArguments(tempScript.GetCommandArgs())
+            .WithStdInSource(stdIn)
+            .WithStdOutTarget(stdOut)
+            .WithStdOutTarget(l =>
+            {
+                // when we receive the first prompt, cancel and kill the process
+                if (l.Contains("Enter Name:")) cts.Cancel();
+            })
+            .WithStdErrTarget(stdErr);
+
         var result = behaviour == SyncBehaviour.Async
             ? await executor.ExecuteAsync(cts.Token)
             : executor.Execute(cts.Token);

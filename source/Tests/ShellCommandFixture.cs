@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -86,10 +87,58 @@ public class ShellCommandFixture
         // Terminate the process after a very short time so the test doesn't run forever
         cts.CancelAfter(TimeSpan.FromSeconds(1));
 
+        var executor = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new ShellCommand("cmd.exe").WithArguments("timeout /t 500 /nobreak")
+            : new ShellCommand("bash").WithArguments("-c \"sleep 500\"");
+
+        int processId = 0;
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
-        // Starting a new instance of cmd.exe will run indefinitely waiting for user input
-        var executor = new ShellCommand(Command)
+        executor = executor
+            .CaptureProcessId(pid => processId = pid)
+            .WithStdOutTarget(stdOut)
+            .WithStdErrTarget(stdErr);
+
+        var cancellationToken = cts.Token;
+        if (behaviour == SyncBehaviour.Async)
+        {
+            await executor.Invoking(e => e.ExecuteAsync(cancellationToken)).Should().ThrowAsync<OperationCanceledException>();
+        }
+        else
+        {
+            executor.Invoking(e => e.Execute(cancellationToken)).Should().Throw<OperationCanceledException>();
+        }
+        // we can't observe any exit code because Execute() threw an exception
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        {
+            stdOut.ToString().Should().ContainEquivalentOf("Microsoft Windows", "the default command-line header would be written to stdout");
+        }
+
+        stdErr.ToString().Should().BeEmpty("no messages should be written to stderr, and the process was terminated before the trailing newline got there");
+
+        processId.Should().NotBe(0, "the process ID should have been captured");
+        new Action(() => Process.GetProcessById(processId)).Should().Throw<ArgumentException>().Which.Message.Should().Contain("not running");
+    }
+
+    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    public async Task CancellationToken_ShouldForceKillTheProcess_DoNotThrowOnCancellation(SyncBehaviour behaviour)
+    {
+        using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
+        // Terminate the process after a very short time so the test doesn't run forever
+        cts.CancelAfter(TimeSpan.FromSeconds(1));
+
+        int processId = 0;
+        var stdOut = new StringBuilder();
+        var stdErr = new StringBuilder();
+        
+        var executor = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            ? new ShellCommand("cmd.exe").WithArguments("timeout /t 500 /nobreak")
+            : new ShellCommand("bash").WithArguments("-c \"sleep 500\"");
+
+        executor = executor
+            .WithOptions(ShellCommandOptions.DoNotThrowOnCancellation)
+            .CaptureProcessId(pid => processId = pid)
             .WithStdOutTarget(stdOut)
             .WithStdErrTarget(stdErr);
 
@@ -110,6 +159,9 @@ public class ShellCommandFixture
         }
 
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr, and the process was terminated before the trailing newline got there");
+        
+        processId.Should().NotBe(0, "the process ID should have been captured");
+        new Action(() => Process.GetProcessById(processId)).Should().Throw<ArgumentException>().Which.Message.Should().Contain("not running");
     }
 
     [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
