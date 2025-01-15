@@ -31,7 +31,9 @@ public class ShellCommandFixture
     readonly CancellationTokenSource cancellationTokenSource = new(TestTimeout);
     CancellationToken CancellationToken => cancellationTokenSource.Token;
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ExitCode_ShouldBeReturned(SyncBehaviour behaviour)
     {
         var stdOut = new StringBuilder();
@@ -53,7 +55,9 @@ public class ShellCommandFixture
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task RunningAsSameUser_ShouldCopySpecialEnvironmentVariables(SyncBehaviour behaviour)
     {
         var stdOut = new StringBuilder();
@@ -79,7 +83,9 @@ public class ShellCommandFixture
         stdOut.ToString().Should().ContainEquivalentOf("customvalue", "the environment variable should have been copied to the child process");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task CancellationToken_ShouldForceKillTheProcess(SyncBehaviour behaviour)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(CancellationToken);
@@ -112,7 +118,9 @@ public class ShellCommandFixture
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr, and the process was terminated before the trailing newline got there");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task EchoHello_ShouldWriteToCapturedStdOutStringBuilder(SyncBehaviour behaviour)
     {
         var stdOut = new StringBuilder();
@@ -132,7 +140,9 @@ public class ShellCommandFixture
         stdOut.ToString().Should().ContainEquivalentOf("hello");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task EchoHello_ShouldWriteToCapturedStdOutCallback(SyncBehaviour behaviour)
     {
         var outMessages = new List<string>();
@@ -158,7 +168,9 @@ public class ShellCommandFixture
         outMessages.Should().ContainSingle(msg => msg.Contains("hello"));
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task EchoError_ShouldWriteToCapturedStdErrCallback(SyncBehaviour behaviour)
     {
         var outMessages = new List<string>();
@@ -184,7 +196,9 @@ public class ShellCommandFixture
         errMessages.Should().ContainSingle(msg => msg.Contains("Something went wrong!"));
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task MultipleCapturingCallbacks(SyncBehaviour behaviour)
     {
         var outStringBuilder = new StringBuilder();
@@ -214,7 +228,9 @@ public class ShellCommandFixture
         outStringBuilder2.ToString().Should().Be("hello" + Environment.NewLine + "goodbye" + Environment.NewLine);
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task RunAsCurrentUser_ShouldWork(SyncBehaviour behaviour)
     {
         var arguments = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
@@ -238,7 +254,9 @@ public class ShellCommandFixture
         stdOut.ToString().Should().ContainEquivalentOf($@"{Environment.UserName}");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ArgumentArrayHandlingShouldBeConsistentWithRawArgumsnts(SyncBehaviour behaviour)
     {
         var stdOut = new StringBuilder();
@@ -258,23 +276,25 @@ public class ShellCommandFixture
         stdOut.ToString().Should().ContainEquivalentOf("hello");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ArgumentArrayHandlingShouldBeCorrect(SyncBehaviour behaviour)
     {
         using var assertionScope = new AssertionScope();
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 setlocal enabledelayedexpansion
-                 for %%A in (%*) do (
-                     echo %%~A
-                 )
-                 """,
-            sh: """
-                for arg in "$@"; do
-                    echo "$arg"
-                done
-                """);
+            """
+            @echo off
+            setlocal enabledelayedexpansion
+            for %%A in (%*) do (
+                echo %%~A
+            )
+            """,
+            """
+            for arg in "$@"; do
+                echo "$arg"
+            done
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
@@ -309,13 +329,11 @@ public class ShellCommandFixture
         stdOut.ToString()
             .Should()
             .Be(string.Join(Environment.NewLine,
-            [
                 "apple",
-                "banana split", // spaces should be preserved
+                "banana split",
                 expectedQuotedValue,
                 "cherry",
-                "" // it has a trailing newline at the end
-            ]));
+                ""));
     }
 
     static string EchoEnvironmentVariable(string varName)

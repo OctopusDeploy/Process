@@ -1,13 +1,12 @@
-﻿namespace Tests.Plumbing;
+﻿using System;
+
+namespace Tests.Plumbing;
 
 // Note: This leaves the user account lying around on your PC. We should probably delete it but it's the same account each time so not a big deal.
 public class WindowsUserClassFixture
 {
-    static readonly object Gate = new();
-    
     const string Username = "test-shellexecutor";
-
-    internal TestUserPrincipal User { get; }
+    static readonly object Gate = new();
 
     public WindowsUserClassFixture()
     {
@@ -18,4 +17,6 @@ public class WindowsUserClassFixture
             User = new TestUserPrincipal(Username);
         }
     }
+
+    internal TestUserPrincipal User { get; }
 }

@@ -4,12 +4,11 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 
-namespace Octopus.Shellfish
+namespace Octopus.Shellfish;
+
+interface IXPlatAdapter
 {
-    interface IXPlatAdapter
-    {
-        void ConfigureStartInfoForUser(ProcessStartInfo startInfo, NetworkCredential runAs, IReadOnlyDictionary<string, string>? customEnvironmentVariables);
-        void TryKillProcessAndChildrenRecursively(Process process);
-        Encoding GetOemEncoding();
-    }
+    void ConfigureStartInfoForUser(ProcessStartInfo startInfo, NetworkCredential runAs, IReadOnlyDictionary<string, string>? customEnvironmentVariables);
+    void TryKillProcessAndChildrenRecursively(Process process);
+    Encoding GetOemEncoding();
 }

@@ -14,22 +14,24 @@ public class ShellCommandFixtureStdInput
 {
     readonly CancellationTokenSource cancellationTokenSource = new(ShellCommandFixture.TestTimeout);
     CancellationToken CancellationToken => cancellationTokenSource.Token;
-    
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ShouldWork(SyncBehaviour behaviour)
     {
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 echo Enter First Name:
-                 set /p firstname=
-                 echo Hello '%firstname%'
-                 """,
-            sh: """
-                echo "Enter First Name:"
-                read firstname
-                echo "Hello '$firstname'"
-                """);
+            """
+            @echo off
+            echo Enter First Name:
+            set /p firstname=
+            echo Hello '%firstname%'
+            """,
+            """
+            echo "Enter First Name:"
+            read firstname
+            echo "Hello '$firstname'"
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
@@ -49,29 +51,31 @@ public class ShellCommandFixtureStdInput
         stdOut.ToString().Should().Be("Enter First Name:" + Environment.NewLine + "Hello 'Bob'" + Environment.NewLine);
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task MultipleInputItemsShouldWork(SyncBehaviour behaviour)
     {
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 echo Enter First Name:
-                 set /p firstname=
-                 echo Enter Last Name:
-                 set /p lastname=
-                 echo Hello '%firstname%' '%lastname%'
-                 """,
-            sh: """
-                echo "Enter First Name:"
-                read firstname
-                echo "Enter Last Name:"
-                read lastname
-                echo "Hello '$firstname' '$lastname'"
-                """);
+            """
+            @echo off
+            echo Enter First Name:
+            set /p firstname=
+            echo Enter Last Name:
+            set /p lastname=
+            echo Hello '%firstname%' '%lastname%'
+            """,
+            """
+            echo "Enter First Name:"
+            read firstname
+            echo "Enter Last Name:"
+            read lastname
+            echo "Hello '$firstname' '$lastname'"
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
-        
+
         // it's going to ask us for the names, we need to answer back or the process will stall forever; we can preload this
         var stdIn = new TestInputSource();
 
@@ -94,30 +98,32 @@ public class ShellCommandFixtureStdInput
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr");
         stdOut.ToString().Should().Be("Enter First Name:" + Environment.NewLine + "Enter Last Name:" + Environment.NewLine + "Hello 'Bob' 'Octopus'" + Environment.NewLine);
     }
-    
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ClosingStdInEarly(SyncBehaviour behaviour)
     {
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 echo Enter First Name:
-                 set /p firstname=
-                 echo Enter Last Name:
-                 set /p lastname=
-                 echo Hello '%firstname%' '%lastname%'
-                 """,
-            sh: """
-                echo "Enter First Name:"
-                read firstname
-                echo "Enter Last Name:"
-                read lastname
-                echo "Hello '$firstname' '$lastname'"
-                """);
+            """
+            @echo off
+            echo Enter First Name:
+            set /p firstname=
+            echo Enter Last Name:
+            set /p lastname=
+            echo Hello '%firstname%' '%lastname%'
+            """,
+            """
+            echo "Enter First Name:"
+            read firstname
+            echo "Enter Last Name:"
+            read lastname
+            echo "Hello '$firstname' '$lastname'"
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
-        
+
         // it's going to ask us for the names, we need to answer back or the process will stall forever; we can preload this
         var stdIn = new TestInputSource();
 
@@ -141,22 +147,24 @@ public class ShellCommandFixtureStdInput
         // When we close stdin the waiting process receives an EOF; Our trivial shell script interprets this as an empty string
         stdOut.ToString().Should().Be("Enter First Name:" + Environment.NewLine + "Enter Last Name:" + Environment.NewLine + "Hello 'Bob' ''" + Environment.NewLine);
     }
-    
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ShouldReleaseInputSourceWhenProgramExits(SyncBehaviour behaviour)
     {
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 echo Enter First Name:
-                 set /p firstname=
-                 echo Hello '%firstname%'
-                 """,
-            sh: """
-                echo "Enter First Name:"
-                read firstname
-                echo "Hello '$firstname'"
-                """);
+            """
+            @echo off
+            echo Enter First Name:
+            set /p firstname=
+            echo Hello '%firstname%'
+            """,
+            """
+            echo "Enter First Name:"
+            read firstname
+            echo "Hello '$firstname'"
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
@@ -171,14 +179,14 @@ public class ShellCommandFixtureStdInput
             .WithStdOutTarget(l =>
             {
                 stdIn.Subscriber.Should().NotBeNull("the shellcommand should still be subscribed to the input source while the process is running");
-                
+
                 // when we receive the first prompt, cancel and kill the process
                 if (l.Contains("Enter First Name:")) stdIn.OnNext("Bob");
             })
             .WithStdErrTarget(stdErr);
 
         stdIn.Subscriber.Should().BeNull("the shellcommand should not subscribe to the input source until the process starts");
-        
+
         var result = behaviour == SyncBehaviour.Async
             ? await executor.ExecuteAsync(CancellationToken)
             : executor.Execute(CancellationToken);
@@ -186,25 +194,27 @@ public class ShellCommandFixtureStdInput
         result.ExitCode.Should().Be(0, "the process should have run to completion");
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr");
         stdOut.ToString().Should().Be("Enter First Name:" + Environment.NewLine + "Hello 'Bob'" + Environment.NewLine);
-        
+
         stdIn.Subscriber.Should().BeNull("the shellcommand should have unsubscribed from the input source after the process exits");
     }
 
-    [Theory, InlineData(SyncBehaviour.Sync), InlineData(SyncBehaviour.Async)]
+    [Theory]
+    [InlineData(SyncBehaviour.Sync)]
+    [InlineData(SyncBehaviour.Async)]
     public async Task ShouldBeCancellable(SyncBehaviour behaviour)
     {
         using var tempScript = TempScript.Create(
-            cmd: """
-                 @echo off
-                 echo Enter Name:
-                 set /p name=
-                 echo Hello '%name%'
-                 """,
-            sh: """
-                echo "Enter Name:"
-                read name
-                echo "Hello '$name'"
-                """);
+            """
+            @echo off
+            echo Enter Name:
+            set /p name=
+            echo Hello '%name%'
+            """,
+            """
+            echo "Enter Name:"
+            read name
+            echo "Hello '$name'"
+            """);
 
         var stdOut = new StringBuilder();
         var stdErr = new StringBuilder();
@@ -234,12 +244,15 @@ public class ShellCommandFixtureStdInput
         // Whenever I've run this locally on windows or linux I always observe 0.
         result.ExitCode.Should().BeOneOf([0, -1], "The process should exit cleanly when stdin is closed, but we might kill depending on timing");
         stdErr.ToString().Should().BeEmpty("no messages should be written to stderr");
-        stdOut.ToString().Should().BeOneOf([
-            "Enter Name:" + Environment.NewLine,
-            "Enter Name:" + Environment.NewLine + "Hello ''" + Environment.NewLine,
-        ], because: "When we cancel the process we close StdIn and it shuts down. The process observes the EOF as empty string and prints 'Hello ' but there is a benign race condition which means we may not observe this output. Test needs to handle both cases");
+        stdOut.ToString()
+            .Should()
+            .BeOneOf([
+                    "Enter Name:" + Environment.NewLine,
+                    "Enter Name:" + Environment.NewLine + "Hello ''" + Environment.NewLine
+                ],
+                "When we cancel the process we close StdIn and it shuts down. The process observes the EOF as empty string and prints 'Hello ' but there is a benign race condition which means we may not observe this output. Test needs to handle both cases");
     }
-    
+
     // If someone wants to have an interactive back-and-forth with a process, they 
     // can use a type like this to do it. We don't want to quite commit to putting it
     // in the public API though until we have a stronger use-case for it.
@@ -259,7 +272,7 @@ public class ShellCommandFixtureStdInput
         {
             Subscriber?.OnNext(line);
         }
-        
+
         public void OnCompleted()
         {
             Subscriber?.OnCompleted();
