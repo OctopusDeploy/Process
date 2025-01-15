@@ -1,4 +1,6 @@
-﻿namespace Tests.Plumbing;
+﻿using System;
+
+namespace Tests.Plumbing;
 
 public enum SyncBehaviour
 {

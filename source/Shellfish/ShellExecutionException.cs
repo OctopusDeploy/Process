@@ -2,31 +2,30 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Octopus.Shellfish
+namespace Octopus.Shellfish;
+
+public class ShellExecutionException : Exception
 {
-    public class ShellExecutionException : Exception
+    readonly int exitCode;
+
+    internal ShellExecutionException(int exitCode, List<string> errors)
     {
-        readonly int exitCode;
+        this.exitCode = exitCode;
+        Errors = errors;
+    }
 
-        internal ShellExecutionException(int exitCode, List<string> errors)
+    public IReadOnlyList<string> Errors { get; }
+
+    public override string Message
+    {
+        get
         {
-            this.exitCode = exitCode;
-            Errors = errors;
-        }
+            var sb = new StringBuilder(base.Message);
 
-        public IReadOnlyList<string> Errors { get; }
-
-        public override string Message
-        {
-            get
-            {
-                var sb = new StringBuilder(base.Message);
-
-                sb.AppendFormat(" Exit code: {0}", exitCode);
-                if (Errors.Count > 0)
-                    sb.AppendLine(string.Join(Environment.NewLine, Errors));
-                return sb.ToString();
-            }
+            sb.AppendFormat(" Exit code: {0}", exitCode);
+            if (Errors.Count > 0)
+                sb.AppendLine(string.Join(Environment.NewLine, Errors));
+            return sb.ToString();
         }
     }
 }
