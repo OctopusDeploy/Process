@@ -1,46 +1,45 @@
 using System;
 using System.ComponentModel;
 
-namespace Octopus.Shellfish.Windows
+namespace Octopus.Shellfish.Windows;
+
+static class Win32Helper
 {
-    static class Win32Helper
+    public static bool Invoke(Func<bool> nativeMethod, string failureDescription)
     {
-        public static bool Invoke(Func<bool> nativeMethod, string failureDescription)
+        try
         {
-            try
-            {
-                return nativeMethod() ? true : throw new Win32Exception();
-            }
-            catch (Win32Exception ex)
-            {
-                throw new Exception($"{failureDescription}: {ex.Message}", ex);
-            }
+            return nativeMethod() ? true : throw new Win32Exception();
         }
-
-        public static T Invoke<T>(Func<T> nativeMethod, Func<T, bool> successful, string failureDescription)
+        catch (Win32Exception ex)
         {
-            try
-            {
-                var result = nativeMethod();
-                return successful(result) ? result : throw new Win32Exception();
-            }
-            catch (Win32Exception ex)
-            {
-                throw new Exception($"{failureDescription}: {ex.Message}", ex);
-            }
+            throw new Exception($"{failureDescription}: {ex.Message}", ex);
         }
+    }
 
-        public static IntPtr Invoke(Func<IntPtr> nativeMethod, string failureDescription)
+    public static T Invoke<T>(Func<T> nativeMethod, Func<T, bool> successful, string failureDescription)
+    {
+        try
         {
-            try
-            {
-                var result = nativeMethod();
-                return result != IntPtr.Zero ? result : throw new Win32Exception();
-            }
-            catch (Win32Exception ex)
-            {
-                throw new Exception($"{failureDescription}: {ex.Message}", ex);
-            }
+            var result = nativeMethod();
+            return successful(result) ? result : throw new Win32Exception();
+        }
+        catch (Win32Exception ex)
+        {
+            throw new Exception($"{failureDescription}: {ex.Message}", ex);
+        }
+    }
+
+    public static IntPtr Invoke(Func<IntPtr> nativeMethod, string failureDescription)
+    {
+        try
+        {
+            var result = nativeMethod();
+            return result != IntPtr.Zero ? result : throw new Win32Exception();
+        }
+        catch (Win32Exception ex)
+        {
+            throw new Exception($"{failureDescription}: {ex.Message}", ex);
         }
     }
 }
