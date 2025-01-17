@@ -2,23 +2,22 @@ using System;
 using System.Runtime.InteropServices;
 using Xunit;
 
-namespace Tests.Plumbing
+namespace Tests.Plumbing;
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class WindowsFactAttribute : FactAttribute
 {
-    [AttributeUsage(AttributeTargets.Method)]
-    public sealed class WindowsFactAttribute : FactAttribute
+    public WindowsFactAttribute()
     {
-        public WindowsFactAttribute()
-        {
-            if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Skip = $"This test only runs on Windows";
-        }
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Skip = "This test only runs on Windows";
     }
-    
-    [AttributeUsage(AttributeTargets.Method)]
-    public sealed class WindowsTheoryAttribute : TheoryAttribute
+}
+
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class WindowsTheoryAttribute : TheoryAttribute
+{
+    public WindowsTheoryAttribute()
     {
-        public WindowsTheoryAttribute()
-        {
-            if(!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Skip = $"This test only runs on Windows";
-        }
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) Skip = "This test only runs on Windows";
     }
 }

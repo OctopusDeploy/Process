@@ -1,4 +1,6 @@
-﻿namespace Octopus.Shellfish;
+﻿using System;
+
+namespace Octopus.Shellfish;
 
 /// <summary>
 /// Holds the result of a shell command execution.

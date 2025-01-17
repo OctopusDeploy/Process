@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 
@@ -43,20 +42,15 @@ public static class TempScript
 
         // Returns the host application which will run the script. Either cmd.exe or bash
         public string GetHostExecutable()
-        {
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash";
-        }
+            => RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "cmd.exe" : "bash";
 
         // Returns the command line args to get the host application to run the script
         // For cmd.exe, returns ["/c", ScriptPath] as it needs /c
         // For bash, returns [ScriptPath] as it doesn't need any preamble
         public string[] GetCommandArgs()
-        {
             // when running cmd.exe we need /c to tell it to run the script; bash doesn't want any preamble for a script file
-            return RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+            => RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
                 ? ["/c", ScriptPath]
                 : [ScriptPath];
-
-        }
     }
 }

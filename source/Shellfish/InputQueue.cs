@@ -29,12 +29,12 @@ class InputQueue : IInputSourceObserver
         {
             if (messagePumpTask == null) return;
 
-            queue.Enqueue(new(NotificationType.Next, line));
+            queue.Enqueue(new Notification(NotificationType.Next, line));
 
             // it is very wasteful to allocate a new TaskCompletionSource for every line, but it's simple.
             // Shellfish only deals with a few lines of input so we can accept the compromise.
             sig = wakeupSignal;
-            wakeupSignal = new();
+            wakeupSignal = new TaskCompletionSource<bool>();
         }
 
         sig.TrySetResult(true);
@@ -47,9 +47,9 @@ class InputQueue : IInputSourceObserver
         {
             if (messagePumpTask == null) return;
 
-            queue.Enqueue(new(NotificationType.Completed));
+            queue.Enqueue(new Notification(NotificationType.Completed));
             sig = wakeupSignal;
-            wakeupSignal = new();
+            wakeupSignal = new TaskCompletionSource<bool>();
         }
 
         sig.TrySetResult(true);

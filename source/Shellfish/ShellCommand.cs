@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
-using System.Runtime.Versioning;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -119,7 +118,7 @@ public class ShellCommand
 
     /// <summary>
     /// Adds an output target for the standard output stream of the process.
-    /// Typically, an extension method like WithStdOutTarget(StringBuilder) or WithStdOutTarget(Action&lt;string&gt;) would be used over this. 
+    /// Typically, an extension method like WithStdOutTarget(StringBuilder) or WithStdOutTarget(Action&lt;string&gt;) would be used over this.
     /// </summary>
     public ShellCommand WithStdOutTarget(IOutputTarget target)
     {
@@ -137,7 +136,7 @@ public class ShellCommand
 
     /// <summary>
     /// Adds an output target for the standard error stream of the process.
-    /// Typically, an extension method like WithStdErrTarget(StringBuilder) or WithStdErrTarget(Action&lt;string&gt;) would be used over this. 
+    /// Typically, an extension method like WithStdErrTarget(StringBuilder) or WithStdErrTarget(Action&lt;string&gt;) would be used over this.
     /// </summary>
     public ShellCommand WithStdErrTarget(IOutputTarget target)
     {
@@ -157,7 +156,7 @@ public class ShellCommand
         var exitedEvent = AttachProcessExitedManualResetEvent(process, cancellationToken);
         process.Start();
 
-        IDisposable? closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
+        var closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
 
         try
         {
@@ -208,7 +207,7 @@ public class ShellCommand
         var exitedTask = AttachProcessExitedTask(process, cancellationToken);
         process.Start();
 
-        IDisposable? closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
+        var closeStdInDisposable = BeginIoStreams(process, shouldBeginOutputRead, shouldBeginErrorRead, shouldBeginInput);
 
         try
         {
@@ -284,12 +283,8 @@ public class ShellCommand
             // Accessing the ProcessStartInfo.EnvironmentVariables dictionary will preload the environment variables for the current process
             // Then we'll add/overwrite with the customEnvironmentVariables
             if (environmentVariables is { Count: > 0 })
-            {
                 foreach (var kvp in environmentVariables)
-                {
                     process.StartInfo.EnvironmentVariables[kvp.Key] = kvp.Value;
-                }
-            }
         }
 
         shouldBeginOutputRead = shouldBeginErrorRead = false;
@@ -348,17 +343,6 @@ public class ShellCommand
         return null;
     }
 
-    sealed class StopInputStreamDisposable(InputQueue inputQueue, IDisposable additionalDisposable) : IDisposable
-    {
-        public void Dispose()
-        {
-            // tell the input queue to shut itself down
-            inputQueue.OnCompleted();
-            // do whatever other work might be attached
-            additionalDisposable.Dispose();
-        }
-    }
-
     static async Task FinalWaitForExitAsync(Process process, CancellationToken cancellationToken)
     {
 #if NET5_0_OR_GREATER // WaitForExitAsync was added in net5. It handles the buffer flushing scenario so we can simply call it.
@@ -370,5 +354,16 @@ public class ShellCommand
         await Task.CompletedTask;
         process.WaitForExit(); // note we CANNOT pass a timeout here as otherwise the WaitForExit implementation will not wait for the streams to flush
 #endif
+    }
+
+    sealed class StopInputStreamDisposable(InputQueue inputQueue, IDisposable additionalDisposable) : IDisposable
+    {
+        public void Dispose()
+        {
+            // tell the input queue to shut itself down
+            inputQueue.OnCompleted();
+            // do whatever other work might be attached
+            additionalDisposable.Dispose();
+        }
     }
 }

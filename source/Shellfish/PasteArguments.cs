@@ -12,6 +12,7 @@
 // - Changed to use regular StringBuilder as ValueStringBuilder is internal to the CLR
 // - Added static JoinArguments function to encapsulate the logic of joining arguments
 
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -19,23 +20,22 @@ namespace Octopus.Shellfish;
 
 static class PasteArguments
 {
+    const char Quote = '\"';
+    const char Backslash = '\\';
+
     internal static string JoinArguments(IEnumerable<string> arguments)
     {
         var stringBuilder = new StringBuilder();
-        foreach(var argument in arguments)
-        {
+        foreach (var argument in arguments)
             AppendArgument(stringBuilder, argument);
-        }
 
         return stringBuilder.ToString();
     }
-    
+
     internal static void AppendArgument(StringBuilder stringBuilder, string argument)
     {
         if (stringBuilder.Length != 0)
-        {
             stringBuilder.Append(' ');
-        }
 
         // Parsing rules for non-argv[0] arguments:
         //   - Backslash is a normal character except followed by a quote.
@@ -51,13 +51,13 @@ static class PasteArguments
         else
         {
             stringBuilder.Append(Quote);
-            int idx = 0;
+            var idx = 0;
             while (idx < argument.Length)
             {
-                char c = argument[idx++];
+                var c = argument[idx++];
                 if (c == Backslash)
                 {
-                    int numBackSlash = 1;
+                    var numBackSlash = 1;
                     while (idx < argument.Length && argument[idx] == Backslash)
                     {
                         idx++;
@@ -101,20 +101,15 @@ static class PasteArguments
         }
     }
 
-    private static bool ContainsNoWhitespaceOrQuotes(string s)
+    static bool ContainsNoWhitespaceOrQuotes(string s)
     {
-        for (int i = 0; i < s.Length; i++)
+        for (var i = 0; i < s.Length; i++)
         {
-            char c = s[i];
+            var c = s[i];
             if (char.IsWhiteSpace(c) || c == Quote)
-            {
                 return false;
-            }
         }
 
         return true;
     }
-
-    private const char Quote = '\"';
-    private const char Backslash = '\\';
 }

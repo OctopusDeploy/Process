@@ -40,9 +40,7 @@ class Build : NukeBuild
         .Executes(() =>
         {
             foreach (var dir in SourceDirectory.GlobDirectories("**/bin", "**/obj", "**/TestResults"))
-            {
                 dir.DeleteDirectory();
-            }
 
             ArtifactsDirectory.CreateOrCleanDirectory();
         });

@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 
 namespace Octopus.Shellfish;
 
@@ -13,7 +14,7 @@ public static partial class ShellCommandExtensionMethods
 {
     public static ShellCommand WithStdOutTarget(this ShellCommand shellCommand, StringBuilder stringBuilder)
         => shellCommand.WithStdOutTarget(new StringBuilderOutputTarget(stringBuilder));
-    
+
     public static ShellCommand WithStdErrTarget(this ShellCommand shellCommand, StringBuilder stringBuilder)
         => shellCommand.WithStdErrTarget(new StringBuilderOutputTarget(stringBuilder));
 }
